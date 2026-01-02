@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>PhiUSIIL Phishing Detector</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+
+<body>
+  <div id="app">
+    <h1>PhiUSIIL Detector</h1>
+
+    <div class="field">
+      <label>URL hiện tại</label>
+      <div id="current-url" class="mono small"></div>
+    </div>
+
+    <div class="field">
+      <label for="model-select">Model đang dùng</label>
+      <select id="model-select">
+        <option value="rf">Random Forest (rf)</option>
+        <option value="xgb">XGBoost (xgb)</option>
+        <option value="wordcnn">WordCNN (wordcnn)</option>
+        <option value="wordcnn_lstm">WordCNN-LSTM (wordcnn_lstm)</option>
+        <option value="charcnn">CharCNN (charcnn)</option>
+        <option value="charcnn_lstm">CharCNN-LSTM (charcnn_lstm)</option>
+        <option value="cnn_hybrid">CNN Hybrid (cnn_hybrid)</option>
+        <option value="albert">ALBERT (albert)</option>
+        <option value="mobile_bert">MobileBERT (mobile_bert)</option>
+        <option value="tiny_llama">Tiny Llama LoRA (tiny_llama)</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="threshold-input">Ngưỡng phân loại (threshold)</label>
+      <input id="threshold-input" type="number" min="0" max="1" step="0.01" value="0.6" />
+    </div>
+
+    <button id="rescan-btn">Quét lại thủ công</button>
+
+    <div id="status" class="status hidden"></div>
+
+    <div id="result" class="result hidden">
+      <div class="row">
+        <span class="label">Model:</span>
+        <span id="res-model"></span>
+      </div>
+      <div class="row">
+        <span class="label">Label dự đoán:</span>
+        <span id="res-pred"></span>
+      </div>
+      <div class="row">
+        <span class="label">Xác suất (proba):</span>
+        <span id="res-proba"></span>
+      </div>
+      <div class="row">
+        <span class="label">Threshold:</span>
+        <span id="res-threshold"></span>
+      </div>
+      <div class="row hidden">
+        <span class="label">Cache:</span>
+        <span id="res-cached"></span>
+      </div>
+      <div class="row">
+        <span class="label">Thời gian:</span>
+        <span id="res-created"></span>
+      </div>
+      <div class="row">
+        <span class="label">URL đã quet:</span>
+        <span id="res-url" class="mono small"></span>
+      </div>
+      <div class="row hidden">
+        <span class="label">URL Gốc:</span>
+        <span id="res-original-url" class="mono small" style="word-break: break-all; color: #666;"></span>
+      </div>
+      <div class="row">
+        <span class="label">Ghi chú:</span>
+        <span class="mono small">0 = phishing, 1 = benign</span>
+      </div>
+      <div class="control-group">
+        <label>Chế độ quét:</label>
+          <select id="scanMode">
+            <option value="full">Toàn bộ URL (An toàn)</option>
+            <option value="domain">Chỉ Domain (Ít cảnh báo)</option>
+          </select>
+      </div>
+    </div>
+
+    <div id="error" class="error hidden"></div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+
+</html>

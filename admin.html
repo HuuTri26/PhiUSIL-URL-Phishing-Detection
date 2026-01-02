@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PhiUSIIL Admin System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        .badge-phishing { background-color: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+        .badge-safe { background-color: #dcfce7; color: #166534; border: 1px solid #86efac; }
+        .sort-icon { cursor: pointer; margin-left: 5px; color: #9ca3af; }
+        .sort-icon.active { color: #2563eb; }
+        /* Style nút phân trang gọn hơn */
+        .pagination-btn {
+            @apply px-3 py-1 border border-gray-200 rounded mx-1 bg-white text-gray-600 text-sm hover:bg-gray-50 transition;
+            min-width: 32px;
+        }
+        .pagination-btn:disabled { @apply opacity-40 cursor-not-allowed; }
+        .pagination-btn.active { @apply bg-blue-600 text-white border-blue-600 hover:bg-blue-700 font-bold; }
+        .pagination-dots { @apply px-1 text-gray-400 text-sm; }
+        [v-cloak] { display: none; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans">
+    <div id="app" v-cloak class="min-h-screen flex flex-col">
+
+        <header class="bg-white shadow-sm sticky top-0 z-10">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <i class="fa-solid fa-shield-halved text-blue-600 text-3xl"></i>
+                    <h1 class="text-2xl font-bold text-gray-800 tracking-tight">PhiUSIIL <span class="text-gray-400 font-light">Manager</span></h1>
+                </div>
+                <div class="flex gap-3">
+                    <button @click="fetchLogs" :disabled="loading" class="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 transition flex items-center gap-2 text-sm font-medium">
+                        <i class="fa-solid fa-cloud-arrow-down" :class="{'fa-bounce': loading}"></i>
+                        {{ loading ? 'Đang tải...' : 'Tải dữ liệu' }}
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
+                <div class="lg:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                        <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Tổng dữ liệu</p>
+                        <p class="text-3xl font-bold text-gray-900 mt-2">{{ logs.length }}</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-red-500">
+                        <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Phishing Detected</p>
+                        <p class="text-3xl font-bold text-red-600 mt-2">{{ stats.phishing }}</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-green-500">
+                        <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Benign / Safe</p>
+                        <p class="text-3xl font-bold text-green-600 mt-2">{{ stats.benign }}</p>
+                    </div>
+                </div>
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-center relative">
+                     <div style="height: 120px; width: 120px;">
+                        <canvas id="statsChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white p-4 rounded-t-xl shadow-sm border-b border-gray-200 flex flex-col md:flex-row justify-between items-center gap-4">
+                <div class="flex flex-col sm:flex-row w-full md:w-auto gap-3 flex-grow">
+                    <div class="relative w-full sm:w-80">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400"><i class="fa-solid fa-search"></i></span>
+                        <input v-model="searchQuery" type="text" placeholder="Tìm kiếm URL..."
+                            class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm transition">
+                    </div>
+
+                    <div class="relative w-full sm:w-48">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400"><i class="fa-solid fa-filter"></i></span>
+                        <select v-model="filterModel" class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm bg-white appearance-none cursor-pointer">
+                            <option value="">Tất cả Model</option>
+                            <option v-for="m in uniqueModels" :key="m" :value="m">{{ m }}</option>
+                        </select>
+                        <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-500">
+                            <i class="fa-solid fa-chevron-down text-xs"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2 text-sm text-gray-600 whitespace-nowrap">
+                    <span>Hiển thị:</span>
+                    <select v-model="itemsPerPage" class="border border-gray-300 rounded px-2 py-1 outline-none bg-white cursor-pointer text-sm">
+                        <option :value="10">10 dòng</option>
+                        <option :value="25">25 dòng</option>
+                        <option :value="50">50 dòng</option>
+                        <option :value="100">100 dòng</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="bg-white shadow-sm border-x border-b border-gray-200 rounded-b-xl overflow-hidden relative min-h-[400px]">
+
+                <div v-if="loading" class="absolute inset-0 bg-white bg-opacity-80 z-20 flex flex-col items-center justify-center text-blue-600">
+                    <i class="fa-solid fa-circle-notch fa-spin text-4xl mb-3"></i>
+                    <span class="font-medium">Đang tải dữ liệu...</span>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th @click="sortBy('created_at')" class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
+                                    Thời gian <i class="fa-solid fa-sort sort-icon" :class="{active: sortKey === 'created_at'}"></i>
+                                </th>
+                                <th @click="sortBy('url')" class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
+                                    URL / Domain <i class="fa-solid fa-sort sort-icon" :class="{active: sortKey === 'url'}"></i>
+                                </th>
+                                <th @click="sortBy('model')" class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
+                                    Model <i class="fa-solid fa-sort sort-icon" :class="{active: sortKey === 'model'}"></i>
+                                </th>
+                                <th @click="sortBy('pred')" class="px-6 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
+                                    Label <i class="fa-solid fa-sort sort-icon" :class="{active: sortKey === 'pred'}"></i>
+                                </th>
+                                <th class="px-6 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">
+                                    Confidence
+                                </th>
+                                <th class="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">
+                                    Action
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <tr v-for="log in paginatedLogs" :key="log.id" class="hover:bg-blue-50 transition-colors">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">
+                                    {{ formatDate(log.created_at) }}
+                                </td>
+                                <td class="px-6 py-4">
+                                    <div class="flex flex-col">
+                                        <div class="text-sm font-medium text-gray-900 break-all max-w-md" :title="log.original_url || log.url">
+                                            {{ log.original_url || log.url }}
+                                        </div>
+                                        <div class="text-[10px] text-gray-400 font-mono mt-1 break-all select-all leading-tight">
+                                            {{ log.id }}
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="px-2 py-1 rounded text-xs font-semibold bg-gray-100 text-gray-700 border border-gray-200 shadow-sm">
+                                        {{ log.model }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-center">
+                                    <div v-if="log.pred === 0" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold badge-phishing">
+                                        <i class="fa-solid fa-triangle-exclamation"></i> Phishing
+                                    </div>
+                                    <div v-else class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold badge-safe">
+                                        <i class="fa-solid fa-shield-check"></i> Benign
+                                    </div>
+                                    <div v-if="log.is_verified" class="text-[10px] text-blue-600 font-semibold mt-1 uppercase tracking-wide">
+                                        <i class="fa-solid fa-check-double"></i> Đã sửa tay
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-center text-sm">
+                                    <div class="flex items-center justify-center gap-2 group relative">
+                                        <div class="w-16 bg-gray-200 rounded-full h-1.5 overflow-hidden">
+                                            <div class="bg-gray-800 h-1.5 rounded-full transition-all duration-500"
+                                                 :class="{'bg-red-600': log.pred===0, 'bg-green-600': log.pred===1}"
+                                                 :style="{width: (log.proba * 100) + '%'}"></div>
+                                        </div>
+                                        <span class="text-xs font-mono font-medium">{{ (log.proba * 100).toFixed(0) }}%</span>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm">
+                                    <button @click="openEditModal(log)" class="text-blue-600 hover:text-blue-900 mr-3 p-1 rounded hover:bg-blue-100 transition" title="Sửa nhãn">
+                                        <i class="fa-solid fa-pen"></i>
+                                    </button>
+                                    <button @click="deleteLog(log.id)" class="text-red-600 hover:text-red-900 p-1 rounded hover:bg-red-100 transition" title="Xóa">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr v-if="sortedLogs.length === 0 && !loading">
+                                <td colspan="6" class="px-6 py-12 text-center text-gray-500">
+                                    <div class="flex flex-col items-center justify-center">
+                                        <div class="bg-gray-100 rounded-full p-4 mb-3">
+                                            <i class="fa-solid fa-magnifying-glass text-2xl text-gray-400"></i>
+                                        </div>
+                                        <p class="font-medium">Không tìm thấy kết quả nào phù hợp.</p>
+                                        <button @click="resetFilters" class="mt-4 text-blue-600 hover:underline text-sm font-medium">Xóa bộ lọc</button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div v-if="totalPages > 1" class="bg-gray-50 px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6 select-none">
+                    <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                        <div>
+                            <p class="text-xs text-gray-500">
+                                Trang <span class="font-bold text-gray-700">{{ currentPage }}</span> / <span class="font-medium">{{ totalPages }}</span>
+                                (<span class="font-bold text-gray-700">{{ sortedLogs.length }}</span> kết quả)
+                            </p>
+                        </div>
+                        <div>
+                            <nav class="relative z-0 inline-flex rounded-md shadow-sm items-center" aria-label="Pagination">
+                                <button @click="changePage(currentPage - 1)" :disabled="currentPage === 1"
+                                    class="pagination-btn rounded-l-md">
+                                    <i class="fa-solid fa-chevron-left"></i>
+                                </button>
+
+                                <template v-for="(page, index) in paginationArray" :key="index">
+                                    <span v-if="page === '...'" class="pagination-dots">...</span>
+                                    <button v-else
+                                        @click="changePage(page)"
+                                        class="pagination-btn"
+                                        :class="{ 'active': currentPage === page }">
+                                        {{ page }}
+                                    </button>
+                                </template>
+
+                                <button @click="changePage(currentPage + 1)" :disabled="currentPage === totalPages"
+                                    class="pagination-btn rounded-r-md">
+                                    <i class="fa-solid fa-chevron-right"></i>
+                                </button>
+                            </nav>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <transition name="fade">
+            <div v-if="showModal" class="fixed inset-0 z-50 overflow-y-auto" role="dialog">
+                <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+                    <div class="fixed inset-0 transition-opacity bg-gray-900 bg-opacity-50 backdrop-blur-sm" @click="closeModal"></div>
+                    <span class="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
+                    <div class="inline-block align-bottom bg-white rounded-xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full">
+                        <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                            <div class="sm:flex sm:items-start">
+                                <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
+                                    <i class="fa-solid fa-pen-to-square text-blue-600"></i>
+                                </div>
+                                <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                                    <h3 class="text-lg leading-6 font-bold text-gray-900">Hiệu chỉnh kết quả</h3>
+                                    <div class="mt-2">
+                                        <p class="text-sm text-gray-500 mb-2">URL đang sửa:</p>
+                                        <div class="bg-gray-100 p-3 rounded border border-gray-200 text-xs font-mono text-gray-800 break-all mb-4">
+                                            {{ editingLog.original_url || editingLog.url }}
+                                        </div>
+                                        <p class="text-sm text-gray-500 mb-3">Chọn nhãn chính xác:</p>
+                                        <div class="grid grid-cols-2 gap-4">
+                                            <label class="cursor-pointer border rounded-lg p-3 flex items-center justify-center hover:bg-red-50 transition" :class="{'ring-2 ring-red-500 bg-red-50': editingForm.pred === 0}">
+                                                <input type="radio" v-model="editingForm.pred" :value="0" class="sr-only">
+                                                <div class="flex flex-col items-center">
+                                                    <i class="fa-solid fa-triangle-exclamation text-red-600 text-xl mb-1"></i>
+                                                    <span class="text-sm font-bold text-red-700">Phishing</span>
+                                                </div>
+                                            </label>
+                                            <label class="cursor-pointer border rounded-lg p-3 flex items-center justify-center hover:bg-green-50 transition" :class="{'ring-2 ring-green-500 bg-green-50': editingForm.pred === 1}">
+                                                <input type="radio" v-model="editingForm.pred" :value="1" class="sr-only">
+                                                <div class="flex flex-col items-center">
+                                                    <i class="fa-solid fa-shield-check text-green-600 text-xl mb-1"></i>
+                                                    <span class="text-sm font-bold text-green-700">Benign</span>
+                                                </div>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse border-t border-gray-100">
+                            <button @click="submitEdit" class="w-full inline-flex justify-center rounded-lg border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 sm:ml-3 sm:w-auto sm:text-sm transition">
+                                <i class="fa-solid fa-save mr-2 mt-0.5"></i> Lưu thay đổi
+                            </button>
+                            <button @click="closeModal" class="mt-3 w-full inline-flex justify-center rounded-lg border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm transition">
+                                Hủy bỏ
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </transition>
+
+    </div>
+
+    <script>
+        const { createApp } = Vue;
+        const API_BASE = "http://127.0.0.1:8000/api/logs";
+
+        createApp({
+            data() {
+                return {
+                    logs: [],
+                    loading: false,
+                    searchQuery: '',
+                    filterModel: '',
+
+                    sortKey: 'created_at',
+                    sortDesc: true,
+
+                    currentPage: 1,
+                    itemsPerPage: 10,
+
+                    showModal: false,
+                    editingLog: {},
+                    editingForm: { pred: 0 },
+
+                    chart: null
+                }
+            },
+            computed: {
+                uniqueModels() {
+                    const models = this.logs.map(l => l.model).filter(Boolean);
+                    return [...new Set(models)].sort();
+                },
+
+                sortedLogs() {
+                    let result = this.logs;
+                    if (this.filterModel) {
+                        result = result.filter(log => log.model === this.filterModel);
+                    }
+                    if (this.searchQuery) {
+                        const q = this.searchQuery.toLowerCase();
+                        result = result.filter(log =>
+                            (log.original_url || log.url || '').toLowerCase().includes(q) ||
+                            (log.model || '').toLowerCase().includes(q) ||
+                            (log.id || '').toLowerCase().includes(q) // Thêm tìm kiếm theo ID
+                        );
+                    }
+                    result.sort((a, b) => {
+                        let valA = a[this.sortKey];
+                        let valB = b[this.sortKey];
+                        if (typeof valA === 'string') valA = valA.toLowerCase();
+                        if (typeof valB === 'string') valB = valB.toLowerCase();
+                        if (valA < valB) return this.sortDesc ? 1 : -1;
+                        if (valA > valB) return this.sortDesc ? -1 : 1;
+                        return 0;
+                    });
+                    return result;
+                },
+
+                totalPages() {
+                    return Math.ceil(this.sortedLogs.length / this.itemsPerPage) || 1;
+                },
+                paginatedLogs() {
+                    const start = (this.currentPage - 1) * this.itemsPerPage;
+                    const end = start + this.itemsPerPage;
+                    return this.sortedLogs.slice(start, end);
+                },
+
+                // CẬP NHẬT 2: Phân trang gọn (Delta = 1)
+                paginationArray() {
+                    const total = this.totalPages;
+                    const current = this.currentPage;
+                    const delta = 1; // Giảm xuống 1 để gọn hơn
+                    const range = [];
+                    const rangeWithDots = [];
+                    let l;
+
+                    range.push(1);
+                    for (let i = current - delta; i <= current + delta; i++) {
+                        if (i < total && i > 1) range.push(i);
+                    }
+                    if (total > 1) range.push(total);
+
+                    for (let i of range) {
+                        if (l) {
+                            if (i - l === 2) rangeWithDots.push(l + 1);
+                            else if (i - l !== 1) rangeWithDots.push('...');
+                        }
+                        rangeWithDots.push(i);
+                        l = i;
+                    }
+                    return rangeWithDots;
+                },
+
+                stats() {
+                    const phishing = this.logs.filter(l => l.pred === 0).length;
+                    return { phishing, benign: this.logs.length - phishing };
+                }
+            },
+            watch: {
+                searchQuery() { this.currentPage = 1; },
+                filterModel() { this.currentPage = 1; },
+                itemsPerPage() { this.currentPage = 1; },
+                logs: {
+                    deep: true,
+                    handler() { this.$nextTick(() => this.renderChart()); }
+                }
+            },
+            methods: {
+                async fetchLogs() {
+                    this.loading = true;
+                    try {
+                        const res = await fetch(API_BASE + "?limit=0");
+                        if (!res.ok) throw new Error("Network response was not ok");
+                        this.logs = await res.json();
+                    } catch (err) {
+                        console.error(err);
+                        alert("Lỗi tải dữ liệu: " + err.message);
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+                changePage(p) {
+                    if (p >= 1 && p <= this.totalPages) this.currentPage = p;
+                },
+                resetFilters() {
+                    this.searchQuery = '';
+                    this.filterModel = '';
+                },
+                sortBy(key) {
+                    if (this.sortKey === key) this.sortDesc = !this.sortDesc;
+                    else { this.sortKey = key; this.sortDesc = true; }
+                },
+                formatDate(iso) {
+                    if(!iso) return "";
+                    return new Date(iso).toLocaleString('vi-VN');
+                },
+                openEditModal(log) {
+                    this.editingLog = log;
+                    this.editingForm.pred = log.pred;
+                    this.showModal = true;
+                },
+                closeModal() { this.showModal = false; },
+                async submitEdit() {
+                    try {
+                        const res = await fetch(`${API_BASE}/${this.editingLog.id}`, {
+                            method: "PUT",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ pred: this.editingForm.pred, is_verified: true })
+                        });
+                        if (res.ok) {
+                            const target = this.logs.find(l => l.id === this.editingLog.id);
+                            if (target) {
+                                target.pred = this.editingForm.pred;
+                                target.is_verified = true;
+                            }
+                            this.closeModal();
+                        } else {
+                            alert("Cập nhật thất bại!");
+                        }
+                    } catch(e) { alert("Lỗi kết nối server"); }
+                },
+                async deleteLog(id) {
+                    if(!confirm("Bạn chắc chắn muốn xóa bản ghi này?")) return;
+                    try {
+                        const res = await fetch(`${API_BASE}/${id}`, { method: "DELETE" });
+                        if(res.ok) {
+                            this.logs = this.logs.filter(l => l.id !== id);
+                        } else alert("Xóa thất bại");
+                    } catch(e) { alert("Lỗi kết nối"); }
+                },
+                renderChart() {
+                    const ctx = document.getElementById('statsChart');
+                    if (!ctx) return;
+                    if (this.chart) this.chart.destroy();
+                    this.chart = new Chart(ctx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['Phishing', 'Benign'],
+                            datasets: [{
+                                data: [this.stats.phishing, this.stats.benign],
+                                backgroundColor: ['#dc2626', '#16a34a'],
+                                borderWidth: 0,
+                                hoverOffset: 4
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { legend: { display: false }, tooltip: { enabled: true } },
+                            cutout: '75%',
+                            animation: { animateScale: true, animateRotate: true }
+                        }
+                    });
+                }
+            },
+            mounted() {
+                this.fetchLogs();
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>

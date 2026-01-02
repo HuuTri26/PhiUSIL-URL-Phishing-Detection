@@ -1,0 +1,26 @@
+{
+  "name": "multi-labels-urls-ml-dl-detection-models",
+  "version": "1.0.0",
+  "description": "This project implements a fast, scalable malicious URL detection system capable of classifying URLs into four categories: benign, defacement, malware, and phishing. It features an optimized Python-based URL feature extraction pipeline used for large-scale dataset generation (~600k URLs) and real-time prediction. The dataset imbalance was addressed by augmenting the “malware” class with additional samples from the URLHaus database, producing balanced subsets for model training. Four models—CNN, XGBoost, Random Forest, and Transformer-BERT—were trained and evaluated in Google Colab using metrics such as Confusion Matrix, Macro-F1 score, PR-AUC, and Macro-PR-AUC.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DinhQuocToan-N21DCAT057/URL-Phishing-Detection-Models-PhiUSIL-Dataset.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/DinhQuocToan-N21DCAT057/URL-Phishing-Detection-Models-PhiUSIL-Dataset/issues"
+  },
+  "homepage": "https://github.com/DinhQuocToan-N21DCAT057/URL-Phishing-Detection-Models-PhiUSIL-Dataset#readme",
+  "dependencies": {
+    "puppeteer": "^24.16.2",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-recaptcha": "^3.6.8",
+    "puppeteer-extra-plugin-stealth": "^2.11.2"
+  }
+}

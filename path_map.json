@@ -1,0 +1,72 @@
+{
+    "WORD2VEC": {
+        "file_id": "1k7GNwsqGxyBxV4BtKvb4N0DE8DyJmz3l",
+        "filename": "PhiUSIIL_Word2Vec.model",
+        "is_zip": true
+    },
+    "CHAR_TOKENIZER": {
+        "file_id": "1C-YUtRF80X6SpRqDZcENeBLYE8wnUCzD",
+        "filename": "PhiUSIIL_Char_Tokenizer.joblib",
+        "is_zip": false
+    },
+    "XGB": {
+        "file_id": "1Yrwpayo-GC-2u4pxzis2rEr3x2hYda3W",
+        "filename": "PhiUSIIL_XGB_URL_Embedding.json",
+        "is_zip": false
+    },
+    "RF": {
+        "file_id": "1FkTDjOPCgTMAFpyYkqM_kIX4bzXsIo-2",
+        "filename": "PhiUSIIL_RF_URL_Embedding.pkl",
+        "is_zip": false
+    },
+    "WORD_CNN": {
+        "file_id": "1WBIQSr-bwWzFLoFvzHmg3aRx7AuoNPpL",
+        "filename": "PhiUSIIL_WordCNN_URL_Embedding.keras",
+        "is_zip": false
+    },
+    "WORD_CNN_LSTM": {
+        "file_id": "1qtNKjJpMYC1uuZTyw5jowvCg5umnZ1AI",
+        "filename": "PhiUSIIL_WordCNN_LSTM_URL_Embedding.keras",
+        "is_zip": false
+    },
+    "CHAR_CNN": {
+        "file_id": "1JUfzbFb228DtOFfP2B-7P8fm_GEUqCUe",
+        "filename": "PhiUSIIL_CharCNN_Char_Embedding.keras",
+        "is_zip": false
+    },
+    "CHAR_CNN_LSTM": {
+        "file_id": "1HhFeAc7cRcCcoD7TIr3geF0wIxjlhQ6N",
+        "filename": "PhiUSIIL_CharCNN_LSTM_Char_Embedding.keras",
+        "is_zip": false
+    },
+    "CNN_HYBRID": {
+        "file_id": "1WuNvc0Hwi5OHnUhfuB9aVuoSvHgmg5OH",
+        "filename": "PhiUSIIL_CNN_Hybrid.keras",
+        "is_zip": false
+    },
+    "ALBERT": {
+        "file_id": "1sqJWj3eSakqPloGeUdUaFvzb3S8w6_tF",
+        "filename": "PhiUSIIL_ALBERT",
+        "is_zip": true
+    },
+    "MOBILE_BERT": {
+        "file_id": "1SCVuua53tAYamIQCECOtcnjDYvQmztuE",
+        "filename": "PhiUSIIL_MobileBERT",
+        "is_zip": true
+    },
+    "TINY_LLAMA_BASE": {
+        "file_id": "1PF-rDxlcUTtKlsDO0TjKP_bRX-r8ljbY",
+        "filename": "TinyLlama-1.1B-Chat-v1.0",
+        "is_zip": true
+    },
+    "TINY_LLAMA_LORA": {
+        "file_id": "1py4c9cGev39gT_7Kkl8Ji24M6ol5v5Ic",
+        "filename": "PhiUSIIL_TinyLlama_LoRA",
+        "is_zip": true
+    },
+    "FIREBASE": {
+        "credential_file": "phiusiil-url-phishing-database-firebase-adminsdk-fbsvc-a514f3d602.json",
+        "project_id": "phiusiil-url-phishing-database",
+        "collections": "predictions"
+    }
+}

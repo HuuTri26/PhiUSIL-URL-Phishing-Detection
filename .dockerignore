@@ -1,0 +1,8 @@
+scripts/*
+!scripts/app.py
+!scripts/configs.py
+!scripts/firebase_client.py
+!scripts/model_downloader.py
+!scripts/model_inferences.py
+
+secrets/*
